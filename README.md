@@ -1,39 +1,37 @@
 # MultiCanvas
 
-Ung dung ve co ban da nen tang bang Kotlin Multiplatform va Compose Multiplatform, huong toi Android va Desktop JVM de chay tren Windows.
+Ứng dụng vẽ cơ bản đa nền tảng được xây dựng bằng Kotlin Multiplatform và Compose Multiplatform, hướng tới Android và Desktop JVM để chạy trên Windows.
 
-## Thanh vien
+## Thành viên
 
-| Ho ten | Vai tro | Cong viec chinh |
+| MSSV | Họ tên | Công việc chính |
 | --- | --- | --- |
-| Thang | Thanh vien | Cau truc du lieu doi tuong ve, Canvas tuong tac, tuy chinh mau/net/to mau, README, kiem tra cheo |
-| Thanh | Thanh vien | Khoi tao project/repo, luu va nap file nhi phan, xuat anh, video demo, PAT nop bai |
+| 23127260 | Tô Minh Thắng | Định nghĩa cấu trúc dữ liệu cho các đối tượng vẽ, cài đặt Canvas tương tác, hỗ trợ chọn màu viền, độ dày viền, tô màu, soạn README và kiểm tra chéo tính năng. |
+| 23127262 | Lý Quốc Thạnh | Khởi tạo project/repo, serialize/deserialize dữ liệu bản vẽ, tích hợp lưu/nạp file nhị phân, xuất ảnh, quay video demo và chuẩn bị PAT nộp bài. |
 
-> Cap nhat them MSSV/lop neu giang vien yeu cau trong bieu mau nop bai.
+## Chức năng đã thực hiện
 
-## Chuc nang da thuc hien
+- Vẽ 6 loại đối tượng cơ bản: điểm, đường thẳng, hình ellipse, hình tròn, hình vuông và hình chữ nhật.
+- Hiển thị nét vẽ nháp trong lúc kéo thả trên Canvas.
+- Chọn màu đường viền từ bảng màu có sẵn.
+- Chọn độ dày đường viền bằng slider.
+- Bật/tắt tô màu và chọn màu tô cho các hình có diện tích.
+- Hoàn tác đối tượng vừa vẽ và xóa toàn bộ bản vẽ.
+- Dùng chung giao diện trong `commonMain` cho Android và Desktop.
 
-- Ve 6 loai doi tuong co ban: diem, duong thang, ellipse, hinh tron, hinh vuong, hinh chu nhat.
-- Hien thi net ve nhap trong luc keo tha tren Canvas.
-- Chon mau duong vien tu bang mau co san.
-- Chon do day duong vien bang slider.
-- Bat/tat to mau va chon mau to cho cac hinh co dien tich.
-- Hoan tac doi tuong vua ve va xoa toan bo ban ve.
-- Dung chung UI trong `commonMain` cho Android va Desktop.
+## Các phần đang chờ tích hợp
 
-## Cac phan dang cho tich hop
-
-- Luu ban ve sang dinh dang nhi phan tu dinh nghia.
-- Nap file nhi phan de tiep tuc ve.
-- Xuat Canvas ra anh `.jpeg` hoac `.png`.
-- Link video demo YouTube Unlisted.
-- Kiem tra Personal Access Token cua GitHub.
+- Lưu bản vẽ sang định dạng nhị phân tự định nghĩa.
+- Nạp file nhị phân để tiếp tục vẽ.
+- Xuất Canvas ra ảnh `.jpeg` hoặc `.png`.
+- Bổ sung link video demo YouTube Unlisted.
+- Kiểm tra Personal Access Token của GitHub.
 
 ## Video demo
 
-- Link video: `TODO: Thanh bo sung link YouTube Unlisted sau khi quay demo Desktop va Mobile`.
+- Link video: `TODO: Lý Quốc Thạnh bổ sung link YouTube Unlisted sau khi quay demo Desktop và Mobile`.
 
-## Cach chay
+## Cách chạy
 
 ### Desktop Windows
 
@@ -45,19 +43,19 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 
 ### Android
 
-Can cau hinh Android SDK bang `ANDROID_HOME` hoac file `local.properties`:
+Cần cấu hình Android SDK bằng `ANDROID_HOME` hoặc file `local.properties`:
 
 ```properties
 sdk.dir=C\:\\Users\\<user>\\AppData\\Local\\Android\\Sdk
 ```
 
-Sau do build debug:
+Sau đó build debug:
 
 ```powershell
 .\gradlew.bat :composeApp:assembleDebug
 ```
 
-## Ghi chu nop bai
+## Ghi chú nộp bài
 
 - Repo GitHub: <https://github.com/dinosauce-285/MultiCanvas.git>
-- Token nop bai can o quyen chi doc va dat ngay het han 30/01/2026 theo yeu cau de bai.
+- Token nộp bài cần có quyền chỉ đọc và đặt ngày hết hạn 30/01/2026 theo yêu cầu đề bài.
