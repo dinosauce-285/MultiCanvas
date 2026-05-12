@@ -47,9 +47,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.example.multicanvas.model.CanvasDocument
 import com.example.multicanvas.model.CanvasPoint
 import com.example.multicanvas.model.CircleObject
 import com.example.multicanvas.model.DrawingObject
@@ -62,6 +65,7 @@ import com.example.multicanvas.model.RgbaColor
 import com.example.multicanvas.model.ShapeTool
 import com.example.multicanvas.model.SquareObject
 import com.example.multicanvas.model.createDrawingObject
+import com.example.multicanvas.platform.rememberDrawingFileActions
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -77,6 +81,18 @@ fun MultiCanvasScreen() {
     var strokeWidth by remember { mutableStateOf(4f) }
     var fillEnabled by remember { mutableStateOf(true) }
     var draftObject by remember { mutableStateOf<DrawingObject?>(null) }
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    var statusMessage by remember { mutableStateOf("San sang") }
+
+    val fileActions = rememberDrawingFileActions(
+        onDocumentLoaded = { document ->
+            objects.clear()
+            objects.addAll(document.objects)
+            nextId = document.objects.maxOfOrNull { it.id }?.plus(1L) ?: 1L
+            draftObject = null
+        },
+        onMessage = { statusMessage = it },
+    )
 
     val currentStyle = DrawingStyle(
         strokeColor = strokeColor,
@@ -109,6 +125,17 @@ fun MultiCanvasScreen() {
                 onFillEnabledChanged = { fillEnabled = it },
                 objectCount = objects.size,
                 canUndo = objects.isNotEmpty(),
+                statusMessage = statusMessage,
+                onSave = {
+                    fileActions.saveBinary(
+                        CanvasDocument(
+                            width = canvasSize.width,
+                            height = canvasSize.height,
+                            objects = objects.toList(),
+                        ),
+                    )
+                },
+                onLoad = fileActions.loadBinary,
                 onUndo = {
                     if (objects.isNotEmpty()) {
                         objects.removeAt(objects.lastIndex)
@@ -126,6 +153,7 @@ fun MultiCanvasScreen() {
                 currentStyle = currentStyle,
                 nextId = nextId,
                 onDraftChanged = { draftObject = it },
+                onSizeChanged = { canvasSize = it },
                 onObjectFinished = { drawingObject ->
                     objects.add(drawingObject)
                     nextId += 1L
@@ -154,6 +182,9 @@ private fun DrawingToolbar(
     onFillEnabledChanged: (Boolean) -> Unit,
     objectCount: Int,
     canUndo: Boolean,
+    statusMessage: String,
+    onSave: () -> Unit,
+    onLoad: () -> Unit,
     onUndo: () -> Unit,
     onClear: () -> Unit,
 ) {
@@ -226,6 +257,12 @@ private fun DrawingToolbar(
                     .weight(1f),
             )
             Text("${strokeWidth.roundToInt()} px")
+            OutlinedButton(onClick = onSave) {
+                Text("Luu .mcv")
+            }
+            OutlinedButton(onClick = onLoad) {
+                Text("Nap .mcv")
+            }
             OutlinedButton(
                 enabled = canUndo,
                 onClick = onUndo,
@@ -240,6 +277,12 @@ private fun DrawingToolbar(
             }
             Text("$objectCount hinh")
         }
+
+        Text(
+            text = statusMessage,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -320,6 +363,7 @@ private fun DrawingBoard(
     currentStyle: DrawingStyle,
     nextId: Long,
     onDraftChanged: (DrawingObject?) -> Unit,
+    onSizeChanged: (IntSize) -> Unit,
     onObjectFinished: (DrawingObject) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -333,6 +377,7 @@ private fun DrawingBoard(
             modifier = Modifier
                 .fillMaxSize()
                 .clipToBounds()
+                .onSizeChanged(onSizeChanged)
                 .pointerInput(selectedTool, currentStyle, nextId) {
                     awaitEachGesture {
                         val down = awaitFirstDown()
