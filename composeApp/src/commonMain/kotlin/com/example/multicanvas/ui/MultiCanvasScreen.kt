@@ -65,6 +65,7 @@ import com.example.multicanvas.model.RgbaColor
 import com.example.multicanvas.model.ShapeTool
 import com.example.multicanvas.model.SquareObject
 import com.example.multicanvas.model.createDrawingObject
+import com.example.multicanvas.platform.ImageExportFormat
 import com.example.multicanvas.platform.rememberDrawingFileActions
 import kotlin.math.abs
 import kotlin.math.max
@@ -127,15 +128,15 @@ fun MultiCanvasScreen() {
                 canUndo = objects.isNotEmpty(),
                 statusMessage = statusMessage,
                 onSave = {
-                    fileActions.saveBinary(
-                        CanvasDocument(
-                            width = canvasSize.width,
-                            height = canvasSize.height,
-                            objects = objects.toList(),
-                        ),
-                    )
+                    fileActions.saveBinary(currentDocument(canvasSize, objects))
                 },
                 onLoad = fileActions.loadBinary,
+                onExportPng = {
+                    fileActions.exportImage(currentDocument(canvasSize, objects), ImageExportFormat.Png)
+                },
+                onExportJpeg = {
+                    fileActions.exportImage(currentDocument(canvasSize, objects), ImageExportFormat.Jpeg)
+                },
                 onUndo = {
                     if (objects.isNotEmpty()) {
                         objects.removeAt(objects.lastIndex)
@@ -185,6 +186,8 @@ private fun DrawingToolbar(
     statusMessage: String,
     onSave: () -> Unit,
     onLoad: () -> Unit,
+    onExportPng: () -> Unit,
+    onExportJpeg: () -> Unit,
     onUndo: () -> Unit,
     onClear: () -> Unit,
 ) {
@@ -263,6 +266,12 @@ private fun DrawingToolbar(
             OutlinedButton(onClick = onLoad) {
                 Text("Nap .mcv")
             }
+            OutlinedButton(onClick = onExportPng) {
+                Text("PNG")
+            }
+            OutlinedButton(onClick = onExportJpeg) {
+                Text("JPEG")
+            }
             OutlinedButton(
                 enabled = canUndo,
                 onClick = onUndo,
@@ -284,6 +293,17 @@ private fun DrawingToolbar(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+private fun currentDocument(
+    canvasSize: IntSize,
+    objects: List<DrawingObject>,
+): CanvasDocument {
+    return CanvasDocument(
+        width = canvasSize.width.coerceAtLeast(1),
+        height = canvasSize.height.coerceAtLeast(1),
+        objects = objects.toList(),
+    )
 }
 
 @Composable
