@@ -47,9 +47,9 @@ actual fun rememberDrawingFileActions(
                 context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
                     ?: error("Cannot open output stream")
             }.onSuccess {
-                onMessage("Da luu file .mcv")
+                onMessage("Đã lưu file .mcv")
             }.onFailure {
-                onMessage("Khong luu duoc file")
+                onMessage("Không lưu được file")
             }
         }
     }
@@ -68,9 +68,9 @@ actual fun rememberDrawingFileActions(
                 DrawingBinaryCodec.decode(bytes)
             }.onSuccess { document ->
                 onDocumentLoaded(document)
-                onMessage("Da nap file .mcv")
+                onMessage("Đã nạp file .mcv")
             }.onFailure {
-                onMessage("File khong dung dinh dang MultiCanvas")
+                onMessage("File không đúng định dạng MultiCanvas")
             }
         }
     }
@@ -86,9 +86,9 @@ actual fun rememberDrawingFileActions(
                 context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
                     ?: error("Cannot open output stream")
             }.onSuccess {
-                onMessage("Da xuat file PNG")
+                onMessage("Đã xuất file PNG")
             }.onFailure {
-                onMessage("Khong xuat duoc PNG")
+                onMessage("Không xuất được PNG")
             }
         }
     }
@@ -104,9 +104,9 @@ actual fun rememberDrawingFileActions(
                 context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
                     ?: error("Cannot open output stream")
             }.onSuccess {
-                onMessage("Da xuat file JPEG")
+                onMessage("Đã xuất file JPEG")
             }.onFailure {
-                onMessage("Khong xuat duoc JPEG")
+                onMessage("Không xuất được JPEG")
             }
         }
     }

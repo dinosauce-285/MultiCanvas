@@ -37,7 +37,7 @@ actual fun rememberDrawingFileActions(
         DrawingFileActions(
             saveBinary = { document ->
                 val file = chooseFile(
-                    title = "Save MultiCanvas drawing",
+                    title = "Lưu bản vẽ MultiCanvas",
                     mode = FileDialog.SAVE,
                     defaultFile = "drawing.mcv",
                 ) ?: return@DrawingFileActions
@@ -46,14 +46,14 @@ actual fun rememberDrawingFileActions(
                     val target = file.withExtension("mcv")
                     target.writeBytes(DrawingBinaryCodec.encode(document))
                 }.onSuccess {
-                    onMessage("Da luu file .mcv")
+                    onMessage("Đã lưu file .mcv")
                 }.onFailure {
-                    onMessage("Khong luu duoc file")
+                    onMessage("Không lưu được file")
                 }
             },
             loadBinary = {
                 val file = chooseFile(
-                    title = "Load MultiCanvas drawing",
+                    title = "Nạp bản vẽ MultiCanvas",
                     mode = FileDialog.LOAD,
                     defaultFile = "*.mcv",
                 ) ?: return@DrawingFileActions
@@ -62,9 +62,9 @@ actual fun rememberDrawingFileActions(
                     DrawingBinaryCodec.decode(file.readBytes())
                 }.onSuccess { document ->
                     onDocumentLoaded(document)
-                    onMessage("Da nap file .mcv")
+                    onMessage("Đã nạp file .mcv")
                 }.onFailure {
-                    onMessage("File khong dung dinh dang MultiCanvas")
+                    onMessage("File không đúng định dạng MultiCanvas")
                 }
             },
             exportImage = { document, format ->
@@ -73,7 +73,7 @@ actual fun rememberDrawingFileActions(
                     ImageExportFormat.Jpeg -> "jpeg"
                 }
                 val file = chooseFile(
-                    title = "Export MultiCanvas image",
+                    title = "Xuất ảnh MultiCanvas",
                     mode = FileDialog.SAVE,
                     defaultFile = "canvas.$extension",
                 ) ?: return@DrawingFileActions
@@ -83,9 +83,9 @@ actual fun rememberDrawingFileActions(
                     val image = renderDocumentImage(document)
                     ImageIO.write(image, extension, target)
                 }.onSuccess {
-                    onMessage("Da xuat file ${extension.uppercase()}")
+                    onMessage("Đã xuất file ${extension.uppercase()}")
                 }.onFailure {
-                    onMessage("Khong xuat duoc file anh")
+                    onMessage("Không xuất được file ảnh")
                 }
             },
         )
