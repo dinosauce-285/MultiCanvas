@@ -9,19 +9,21 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -70,20 +72,20 @@ import com.example.multicanvas.platform.rememberDrawingFileActions
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 @Composable
 fun MultiCanvasScreen() {
     val objects = remember { mutableStateListOf<DrawingObject>() }
     var nextId by remember { mutableLongStateOf(1L) }
-    var selectedTool by remember { mutableStateOf(ShapeTool.Line) }
+    var selectedTool by remember { mutableStateOf(CanvasTool.Line) }
     var strokeColor by remember { mutableStateOf(DefaultStrokeColors.first().color) }
-    var fillColor by remember { mutableStateOf(DefaultFillColors.first().color) }
+    var fillColor by remember { mutableStateOf(RgbaColor(255, 213, 79)) }
     var strokeWidth by remember { mutableStateOf(4f) }
-    var fillEnabled by remember { mutableStateOf(true) }
     var draftObject by remember { mutableStateOf<DrawingObject?>(null) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    var statusMessage by remember { mutableStateOf("San sang") }
+    var statusMessage by remember { mutableStateOf("Sẵn sàng") }
 
     val fileActions = rememberDrawingFileActions(
         onDocumentLoaded = { document ->
@@ -99,7 +101,7 @@ fun MultiCanvasScreen() {
         strokeColor = strokeColor,
         fillColor = fillColor,
         strokeWidth = strokeWidth,
-        fillEnabled = fillEnabled,
+        fillEnabled = false,
     )
 
     Surface(
@@ -108,79 +110,90 @@ fun MultiCanvasScreen() {
             .background(MaterialTheme.colorScheme.background),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .safeContentPadding(),
         ) {
-            DrawingToolbar(
-                selectedTool = selectedTool,
-                onToolSelected = { selectedTool = it },
-                strokeColor = strokeColor,
-                onStrokeColorSelected = { strokeColor = it },
-                fillColor = fillColor,
-                onFillColorSelected = { fillColor = it },
-                strokeWidth = strokeWidth,
-                onStrokeWidthChanged = { strokeWidth = it },
-                fillEnabled = fillEnabled,
-                onFillEnabledChanged = { fillEnabled = it },
-                objectCount = objects.size,
-                canUndo = objects.isNotEmpty(),
-                statusMessage = statusMessage,
-                onSave = {
-                    fileActions.saveBinary(currentDocument(canvasSize, objects))
-                },
-                onLoad = fileActions.loadBinary,
-                onExportPng = {
-                    fileActions.exportImage(currentDocument(canvasSize, objects), ImageExportFormat.Png)
-                },
-                onExportJpeg = {
-                    fileActions.exportImage(currentDocument(canvasSize, objects), ImageExportFormat.Jpeg)
-                },
-                onUndo = {
-                    if (objects.isNotEmpty()) {
-                        objects.removeAt(objects.lastIndex)
-                    }
-                },
-                onClear = { objects.clear() },
-            )
+            val compactLayout = maxWidth < 640.dp
 
-            HorizontalDivider()
+            Column(modifier = Modifier.fillMaxSize()) {
+                DrawingToolbar(
+                    compactLayout = compactLayout,
+                    selectedTool = selectedTool,
+                    onToolSelected = { selectedTool = it },
+                    strokeColor = strokeColor,
+                    onStrokeColorSelected = { strokeColor = it },
+                    fillColor = fillColor,
+                    onFillColorSelected = { fillColor = it },
+                    strokeWidth = strokeWidth,
+                    onStrokeWidthChanged = { strokeWidth = it },
+                    objectCount = objects.size,
+                    canUndo = objects.isNotEmpty(),
+                    statusMessage = statusMessage,
+                    onSave = {
+                        fileActions.saveBinary(currentDocument(canvasSize, objects))
+                    },
+                    onLoad = fileActions.loadBinary,
+                    onExportPng = {
+                        fileActions.exportImage(currentDocument(canvasSize, objects), ImageExportFormat.Png)
+                    },
+                    onExportJpeg = {
+                        fileActions.exportImage(currentDocument(canvasSize, objects), ImageExportFormat.Jpeg)
+                    },
+                    onUndo = {
+                        if (objects.isNotEmpty()) {
+                            objects.removeAt(objects.lastIndex)
+                        }
+                    },
+                    onClear = { objects.clear() },
+                )
 
-            DrawingBoard(
-                objects = objects,
-                draftObject = draftObject,
-                selectedTool = selectedTool,
-                currentStyle = currentStyle,
-                nextId = nextId,
-                onDraftChanged = { draftObject = it },
-                onSizeChanged = { canvasSize = it },
-                onObjectFinished = { drawingObject ->
-                    objects.add(drawingObject)
-                    nextId += 1L
-                    draftObject = null
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(12.dp),
-            )
+                HorizontalDivider()
+
+                DrawingBoard(
+                    objects = objects,
+                    draftObject = draftObject,
+                    selectedTool = selectedTool,
+                    currentStyle = currentStyle,
+                    nextId = nextId,
+                    onDraftChanged = { draftObject = it },
+                    onSizeChanged = { canvasSize = it },
+                    onFillAt = { point ->
+                        val targetIndex = objects.indexOfLast { it.canBeFilledAt(point) }
+                        if (targetIndex >= 0) {
+                            objects[targetIndex] = objects[targetIndex].filledWith(fillColor)
+                            statusMessage = "Đã tô màu hình"
+                        } else {
+                            statusMessage = "Hãy bấm vào bên trong hình kín để tô màu"
+                        }
+                    },
+                    onObjectFinished = { drawingObject ->
+                        objects.add(drawingObject)
+                        nextId += 1L
+                        draftObject = null
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(if (compactLayout) 8.dp else 12.dp),
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun DrawingToolbar(
-    selectedTool: ShapeTool,
-    onToolSelected: (ShapeTool) -> Unit,
+    compactLayout: Boolean,
+    selectedTool: CanvasTool,
+    onToolSelected: (CanvasTool) -> Unit,
     strokeColor: RgbaColor,
     onStrokeColorSelected: (RgbaColor) -> Unit,
     fillColor: RgbaColor,
     onFillColorSelected: (RgbaColor) -> Unit,
     strokeWidth: Float,
     onStrokeWidthChanged: (Float) -> Unit,
-    fillEnabled: Boolean,
-    onFillEnabledChanged: (Boolean) -> Unit,
     objectCount: Int,
     canUndo: Boolean,
     statusMessage: String,
@@ -191,11 +204,21 @@ private fun DrawingToolbar(
     onUndo: () -> Unit,
     onClear: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
+    val toolbarModifier = if (compactLayout) {
+        Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .heightIn(max = 280.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    }
+
+    Column(
+        modifier = toolbarModifier,
+        verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
     ) {
         Row(
             modifier = Modifier
@@ -204,7 +227,7 @@ private fun DrawingToolbar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ShapeTool.entries.forEach { tool ->
+            CanvasTool.entries.forEach { tool ->
                 ToolButton(
                     tool = tool,
                     selected = tool == selectedTool,
@@ -221,70 +244,80 @@ private fun DrawingToolbar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ColorPalette(
-                title = "Vien",
+                title = "Viền",
                 colors = DefaultStrokeColors,
                 selectedColor = strokeColor,
                 onColorSelected = onStrokeColorSelected,
             )
             ColorPalette(
-                title = "To",
+                title = "Tô",
                 colors = DefaultFillColors,
                 selectedColor = fillColor,
                 onColorSelected = onFillColorSelected,
             )
-            Row(
-                modifier = Modifier.clickable { onFillEnabledChanged(!fillEnabled) },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(
-                    checked = fillEnabled,
-                    onCheckedChange = onFillEnabledChanged,
-                )
-                Text("To mau")
-            }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("Day")
-            Slider(
-                value = strokeWidth,
-                onValueChange = { onStrokeWidthChanged(it.coerceIn(1f, 24f)) },
-                valueRange = 1f..24f,
-                steps = 22,
+        if (compactLayout) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Độ dày")
+                StrokeWidthSlider(
+                    strokeWidth = strokeWidth,
+                    onStrokeWidthChanged = onStrokeWidthChanged,
+                    modifier = Modifier
+                        .widthIn(min = 120.dp)
+                        .weight(1f),
+                )
+                Text("${strokeWidth.roundToInt()} px")
+            }
+
+            Row(
                 modifier = Modifier
-                    .widthIn(min = 140.dp)
-                    .weight(1f),
-            )
-            Text("${strokeWidth.roundToInt()} px")
-            OutlinedButton(onClick = onSave) {
-                Text("Luu .mcv")
-            }
-            OutlinedButton(onClick = onLoad) {
-                Text("Nap .mcv")
-            }
-            OutlinedButton(onClick = onExportPng) {
-                Text("PNG")
-            }
-            OutlinedButton(onClick = onExportJpeg) {
-                Text("JPEG")
-            }
-            OutlinedButton(
-                enabled = canUndo,
-                onClick = onUndo,
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Hoan tac")
+                ToolbarActions(
+                    objectCount = objectCount,
+                    canUndo = canUndo,
+                    onSave = onSave,
+                    onLoad = onLoad,
+                    onExportPng = onExportPng,
+                    onExportJpeg = onExportJpeg,
+                    onUndo = onUndo,
+                    onClear = onClear,
+                )
             }
-            Button(
-                enabled = objectCount > 0,
-                onClick = onClear,
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Xoa")
+                Text("Độ dày")
+                StrokeWidthSlider(
+                    strokeWidth = strokeWidth,
+                    onStrokeWidthChanged = onStrokeWidthChanged,
+                    modifier = Modifier
+                        .widthIn(min = 140.dp)
+                        .weight(1f),
+                )
+                Text("${strokeWidth.roundToInt()} px")
+                ToolbarActions(
+                    objectCount = objectCount,
+                    canUndo = canUndo,
+                    onSave = onSave,
+                    onLoad = onLoad,
+                    onExportPng = onExportPng,
+                    onExportJpeg = onExportJpeg,
+                    onUndo = onUndo,
+                    onClear = onClear,
+                )
             }
-            Text("$objectCount hinh")
         }
 
         Text(
@@ -293,6 +326,59 @@ private fun DrawingToolbar(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+@Composable
+private fun StrokeWidthSlider(
+    strokeWidth: Float,
+    onStrokeWidthChanged: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Slider(
+        value = strokeWidth,
+        onValueChange = { onStrokeWidthChanged(it.coerceIn(1f, 24f)) },
+        valueRange = 1f..24f,
+        steps = 22,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun ToolbarActions(
+    objectCount: Int,
+    canUndo: Boolean,
+    onSave: () -> Unit,
+    onLoad: () -> Unit,
+    onExportPng: () -> Unit,
+    onExportJpeg: () -> Unit,
+    onUndo: () -> Unit,
+    onClear: () -> Unit,
+) {
+    OutlinedButton(onClick = onSave) {
+        Text("Lưu .mcv")
+    }
+    OutlinedButton(onClick = onLoad) {
+        Text("Nạp .mcv")
+    }
+    OutlinedButton(onClick = onExportPng) {
+        Text("PNG")
+    }
+    OutlinedButton(onClick = onExportJpeg) {
+        Text("JPEG")
+    }
+    OutlinedButton(
+        enabled = canUndo,
+        onClick = onUndo,
+    ) {
+        Text("Hoàn tác")
+    }
+    Button(
+        enabled = objectCount > 0,
+        onClick = onClear,
+    ) {
+        Text("Xóa")
+    }
+    Text("$objectCount hình")
 }
 
 private fun currentDocument(
@@ -308,7 +394,7 @@ private fun currentDocument(
 
 @Composable
 private fun ToolButton(
-    tool: ShapeTool,
+    tool: CanvasTool,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -379,11 +465,12 @@ private fun ColorSwatch(
 private fun DrawingBoard(
     objects: List<DrawingObject>,
     draftObject: DrawingObject?,
-    selectedTool: ShapeTool,
+    selectedTool: CanvasTool,
     currentStyle: DrawingStyle,
     nextId: Long,
     onDraftChanged: (DrawingObject?) -> Unit,
     onSizeChanged: (IntSize) -> Unit,
+    onFillAt: (CanvasPoint) -> Unit,
     onObjectFinished: (DrawingObject) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -402,11 +489,18 @@ private fun DrawingBoard(
                     awaitEachGesture {
                         val down = awaitFirstDown()
                         val start = down.position.toCanvasPoint()
+                        if (selectedTool == CanvasTool.Fill) {
+                            onDraftChanged(null)
+                            onFillAt(start)
+                            down.consume()
+                            return@awaitEachGesture
+                        }
+
                         var end = start
 
                         onDraftChanged(
                             createDrawingObject(
-                                tool = selectedTool,
+                                tool = selectedTool.shapeTool ?: ShapeTool.Line,
                                 id = nextId,
                                 start = start,
                                 end = end,
@@ -422,7 +516,7 @@ private fun DrawingBoard(
                                 end = change.position.toCanvasPoint()
                                 onDraftChanged(
                                     createDrawingObject(
-                                        tool = selectedTool,
+                                        tool = selectedTool.shapeTool ?: ShapeTool.Line,
                                         id = nextId,
                                         start = start,
                                         end = end,
@@ -435,7 +529,7 @@ private fun DrawingBoard(
 
                         onObjectFinished(
                             createDrawingObject(
-                                tool = selectedTool,
+                                tool = selectedTool.shapeTool ?: ShapeTool.Line,
                                 id = nextId,
                                 start = start,
                                 end = end,
@@ -451,14 +545,36 @@ private fun DrawingBoard(
     }
 }
 
-private val ShapeTool.label: String
+private enum class CanvasTool {
+    Point,
+    Line,
+    Ellipse,
+    Circle,
+    Square,
+    Rectangle,
+    Fill,
+}
+
+private val CanvasTool.shapeTool: ShapeTool?
     get() = when (this) {
-        ShapeTool.Point -> "Diem"
-        ShapeTool.Line -> "Duong"
-        ShapeTool.Ellipse -> "Ellipse"
-        ShapeTool.Circle -> "Tron"
-        ShapeTool.Square -> "Vuong"
-        ShapeTool.Rectangle -> "Chu nhat"
+        CanvasTool.Point -> ShapeTool.Point
+        CanvasTool.Line -> ShapeTool.Line
+        CanvasTool.Ellipse -> ShapeTool.Ellipse
+        CanvasTool.Circle -> ShapeTool.Circle
+        CanvasTool.Square -> ShapeTool.Square
+        CanvasTool.Rectangle -> ShapeTool.Rectangle
+        CanvasTool.Fill -> null
+    }
+
+private val CanvasTool.label: String
+    get() = when (this) {
+        CanvasTool.Point -> "Điểm"
+        CanvasTool.Line -> "Đường"
+        CanvasTool.Ellipse -> "Elip"
+        CanvasTool.Circle -> "Tròn"
+        CanvasTool.Square -> "Vuông"
+        CanvasTool.Rectangle -> "Chữ nhật"
+        CanvasTool.Fill -> "Tô màu"
     }
 
 private data class ColorChoice(
@@ -467,21 +583,21 @@ private data class ColorChoice(
 )
 
 private val DefaultStrokeColors = listOf(
-    ColorChoice("Den", RgbaColor(33, 33, 33)),
-    ColorChoice("Do", RgbaColor(211, 47, 47)),
-    ColorChoice("Xanh duong", RgbaColor(25, 118, 210)),
-    ColorChoice("Xanh la", RgbaColor(46, 125, 50)),
-    ColorChoice("Tim", RgbaColor(123, 31, 162)),
+    ColorChoice("Đen", RgbaColor(33, 33, 33)),
+    ColorChoice("Đỏ", RgbaColor(211, 47, 47)),
+    ColorChoice("Xanh dương", RgbaColor(25, 118, 210)),
+    ColorChoice("Xanh lá", RgbaColor(46, 125, 50)),
+    ColorChoice("Tím", RgbaColor(123, 31, 162)),
     ColorChoice("Cam", RgbaColor(239, 108, 0)),
 )
 
 private val DefaultFillColors = listOf(
-    ColorChoice("Vang", RgbaColor(255, 213, 79)),
-    ColorChoice("Hong", RgbaColor(244, 143, 177)),
-    ColorChoice("Xanh nhat", RgbaColor(100, 181, 246)),
-    ColorChoice("La non", RgbaColor(129, 199, 132)),
-    ColorChoice("Tim nhat", RgbaColor(179, 157, 219)),
-    ColorChoice("Xam", RgbaColor(189, 189, 189)),
+    ColorChoice("Vàng", RgbaColor(255, 213, 79)),
+    ColorChoice("Hồng", RgbaColor(244, 143, 177)),
+    ColorChoice("Xanh nhạt", RgbaColor(100, 181, 246)),
+    ColorChoice("Lá non", RgbaColor(129, 199, 132)),
+    ColorChoice("Tím nhạt", RgbaColor(179, 157, 219)),
+    ColorChoice("Xám", RgbaColor(189, 189, 189)),
 )
 
 private fun Offset.toCanvasPoint(): CanvasPoint {
@@ -608,6 +724,38 @@ private fun DrawScope.drawOvalShape(
         size = Size(bounds.width, bounds.height),
         style = stroke,
     )
+}
+
+private fun DrawingObject.canBeFilledAt(point: CanvasPoint): Boolean {
+    return when (this) {
+        is RectangleObject -> start.rectTo(end).contains(point.toOffset())
+        is SquareObject -> start.squareTo(end).contains(point.toOffset())
+        is EllipseObject -> start.rectTo(end).containsEllipse(point)
+        is CircleObject -> start.squareTo(end).containsEllipse(point)
+        is PointObject,
+        is LineObject -> false
+    }
+}
+
+private fun DrawingObject.filledWith(fillColor: RgbaColor): DrawingObject {
+    val filledStyle = style.copy(fillColor = fillColor, fillEnabled = true)
+    return when (this) {
+        is PointObject -> copy(style = filledStyle)
+        is LineObject -> copy(style = filledStyle)
+        is EllipseObject -> copy(style = filledStyle)
+        is CircleObject -> copy(style = filledStyle)
+        is SquareObject -> copy(style = filledStyle)
+        is RectangleObject -> copy(style = filledStyle)
+    }
+}
+
+private fun Rect.containsEllipse(point: CanvasPoint): Boolean {
+    if (width <= 0f || height <= 0f) return false
+    val radiusX = width / 2f
+    val radiusY = height / 2f
+    val normalizedX = (point.x - center.x) / radiusX
+    val normalizedY = (point.y - center.y) / radiusY
+    return normalizedX.pow(2) + normalizedY.pow(2) <= 1f
 }
 
 private fun CanvasPoint.rectTo(other: CanvasPoint): Rect {
